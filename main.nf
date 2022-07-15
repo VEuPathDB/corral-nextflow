@@ -14,81 +14,50 @@ def fetchRunAccessions( tsv ) {
     return run_accessions
 }
 
-process prepSingleSra {
-
+process prepSra {
   label 'prep'
-
   input:
   tuple val(sample), path(runAccession)
-
   output:
-  tuple val(sample), path("${sample}.fastq")
-
+  tuple val(sample), path("${sample}**.fastq")
   """
-  gzip -d --force $runAccession
+  gzip -d --force *.fastq.gz
   """
 }
 
-process prepPairedSra {
-
-  label 'prep'
-
-  input:
-  tuple val(sample), path(runAccession)
-
-  output:
-  tuple val(sample), path("${sample}_1.fastq"), path("${sample}_2.fastq")
-
-  """
-  gzip -d --force ${runAccession[0]} 
-  gzip -d --force ${runAccession[1]}
-  """
-}
-
-process bowtie2Single {
+process bowtie2 {
   label 'align'
   input:
   tuple val(sample), path(readsFastq)
 
   output:
-  tuple val(sample), path("numReads.txt"), path("alignmentsSingle.sam")
+  tuple val(sample), path("numReads.txt"), path("alignments*.sam")
 
   script:
-  """
-  grep -c '^@' ${readsFastq} > numReads.txt
+  if(params.libraryLayout == 'single')
+      """
+      grep -c '^@' ${readsFastq} > numReads.txt
 
-  ${params.bowtie2Command} \
-    -x ${params.refdb} \
-    -U ${readsFastq} \
-    -S alignmentsSingle.sam 
-  """
+      ${params.bowtie2Command} \
+        -x ${params.refdb} \
+        -U ${readsFastq} \
+        -S alignmentsSingle.sam 
+      """
+  else if(params.libraryLayout == 'paired')
+      """
+      grep -c '^@' ${sample}_1.fastq > numReads.txt
 
-}
-
-process bowtie2Paired {
-  label 'align'
-  input:
-  tuple val(sample), path(readsFastqR1), path(readsFastqR2)
-
-  output:
-  tuple val(sample), path("numReads.txt"), path("alignmentsPaired.sam")
-
-  script:
-  """
-  grep -c '^@' ${readsFastqR1} > numReads.txt
-
-  ${params.bowtie2Command} \
-    -x ${params.refdb} \
-    -1 ${readsFastqR1} \
-    -2 ${readsFastqR2} \
-    -S alignmentsPaired.sam
-  """
+      ${params.bowtie2Command} \
+        -x ${params.refdb} \
+        -1 ${sample}_1.fastq \
+        -2 ${sample}_2.fastq \
+        -S alignmentsPaired.sam
+      """
 }
 
 process alignmentStats {
   publishDir "${params.resultDir}/alignmentStats"
   label 'stats'
-
   input:
   tuple val(sample), path(numReadsPath), path(alignmentsSam)
 
@@ -104,7 +73,6 @@ process alignmentStats {
 process summarizeAlignments{
   publishDir "${params.resultDir}/summarizedAlignments"
   label 'postAlign'
-
   input:
   tuple val(sample), path(numReadsPath), path(alignmentsSam)
 
@@ -147,20 +115,12 @@ def postAlign(sample_numReadsPath_alignmentsSam) {
 workflow {
   if (params.downloadMethod == 'sra') {
     accessions = fetchRunAccessions(params.inputPath)
-    input = Channel.fromSRA( accessions, apiKey: params.apiKey, protocol: "http" )
+    input = Channel.fromSRA(accessions, apiKey: params.apiKey, protocol: "http")
+    sample_reads = prepSra(input).view()
   } else if (params.downloadMethod == 'local') {
     sample_reads = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   }
-  if(params.downloadMethod == 'sra' && params.libraryLayout == 'single'){
-    sample_reads = prepSingleSra(input)
-  } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'paired') {
-    sample_reads = prepPairedSra(input)
-  }
-  if(params.libraryLayout == 'single') {
-    sample_numReads_alignments = bowtie2Single(sample_reads)
-  } else if (params.libraryLayout == 'paired') {
-    sample_numReads_alignments = bowtie2Paired(sample_reads)
-  }
+  sample_numReads_alignments = bowtie2(sample_reads)
   xs = postAlign(sample_numReads_alignments)
   makeTsv(xs.collect())
 }
