@@ -144,41 +144,23 @@ def postAlign(sample_numReadsPath_alignmentsSam) {
   return summarizeAlignments(sample_numReadsPath_alignmentsSam)
 }
 
-def singleSra(input) {
-  sample_reads = prepSingleSra(input)
-  sample_numReads_alignments = bowtie2Single(sample_reads)
-  return postAlign(sample_numReads_alignments)
-}
-
-def pairedSra(input) {
-  sample_reads = prepPairedSra(input)
-  sample_numReads_alignments = bowtie2Paired(sample_reads)
-  return postAlign(sample_numReads_alignments)
-}
-
-def singleLocal(input) {
-  sample_numReads_alignments = bowtie2Single(input)
-  return postAlign(sample_numReads_alignments)
-}
-
-def pairedLocal(input) {
-  sample_numReads_alignments = bowtie2Paired(input)
-  return postAlign(sample_numReads_alignments)
-}
-
 workflow {
   if (params.downloadMethod == 'sra') {
     accessions = fetchRunAccessions(params.inputPath)
     input = Channel.fromSRA( accessions, apiKey: params.apiKey, protocol: "http" )
+  } else if (params.downloadMethod == 'local') {
+    sample_reads = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   }
   if(params.downloadMethod == 'sra' && params.libraryLayout == 'single'){
-    xs = singleSra(input)
-  } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'paired'){
-    xs = pairedSra(input)
-  } else if(params.downloadMethod == 'local' && params.libraryLayout == 'single'){
-    xs = singleLocal(input)
-  } else if(params.downloadMethod == 'local' && params.libraryLayout == 'paired'){
-    xs = pairedLocal(input)
+    sample_reads = prepSingleSra(input)
+  } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'paired') {
+    sample_reads = prepPairedSra(input)
   }
+  if(params.libraryLayout == 'single') {
+    sample_numReads_alignments = bowtie2Single(sample_reads)
+  } else if (params.libraryLayout == 'paired') {
+    sample_numReads_alignments = bowtie2Paired(sample_reads)
+  }
+  xs = postAlign(sample_numReads_alignments)
   makeTsv(xs.collect())
 }
