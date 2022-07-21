@@ -116,7 +116,7 @@ workflow {
   if (params.downloadMethod == 'sra') {
     accessions = fetchRunAccessions(params.inputPath)
     input = Channel.fromSRA(accessions, apiKey: params.apiKey, protocol: "http")
-    sample_reads = prepSra(input).view()
+    sample_reads = prepSra(input)
   } else if (params.downloadMethod == 'local') {
     sample_reads = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   }
