@@ -115,7 +115,7 @@ def postAlign(sample_numReadsPath_alignmentsSam) {
 workflow {
   if (params.downloadMethod == 'sra') {
     accessions = fetchRunAccessions(params.inputPath)
-    input = Channel.fromSRA(accessions, apiKey: params.apiKey, protocol: "http")
+    input = Channel.fromSRA(accessions, apiKey: params.apiKey, protocol: "ftp")
     sample_reads = prepSra(input)
   } else if (params.downloadMethod == 'local') {
     sample_reads = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
