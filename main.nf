@@ -14,14 +14,13 @@ def fetchRunAccessions( tsv ) {
     return run_accessions
 }
 
-process prepSra {
-  label 'prep'
+process downloadFiles {
   input:
-  tuple val(sample), path(runAccession)
+  val id
   output:
-  tuple val(sample), path("${sample}**.fastq")
+  tuple val(id), path("${id}**.fastq")
   """
-  gzip -d --force *.fastq.gz
+  fasterq-dump --split-3 ${id}
   """
 }
 
@@ -115,8 +114,8 @@ def postAlign(sample_numReadsPath_alignmentsSam) {
 workflow {
   if (params.downloadMethod == 'sra') {
     accessions = fetchRunAccessions(params.inputPath)
-    input = Channel.fromSRA(accessions, apiKey: params.apiKey, protocol: "ftp")
-    sample_reads = prepSra(input)
+    ids = Channel.fromList(accessions)
+    sample_reads = downloadFiles(ids)
   } else if (params.downloadMethod == 'local') {
     sample_reads = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   }
