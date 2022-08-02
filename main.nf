@@ -116,8 +116,9 @@ workflow {
     accessions = fetchRunAccessions(params.inputPath)
     ids = Channel.fromList(accessions)
     sample_reads = downloadFiles(ids)
-  } else if (params.downloadMethod == 'local') {
-    sample_reads = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
+  }
+  else if (params.downloadMethod == 'local') {
+    sample_reads = Channel.fromFilePairs(params.localFileLocation + "/*_{1,2}.fastq")
   }
   sample_numReads_alignments = bowtie2(sample_reads)
   xs = postAlign(sample_numReads_alignments)
