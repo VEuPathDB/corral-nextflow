@@ -1,6 +1,5 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
-import nextflow.splitter.CsvSplitter
 
 
 process downloadFiles {
@@ -81,14 +80,17 @@ process makeTsv {
 
 
 def postAlign(sample_numReadsPath_alignmentsSam) {
+
   alignmentStats(sample_numReadsPath_alignmentsSam)
   return summarizeAlignments(sample_numReadsPath_alignmentsSam)
+
 }
 
 
 workflow sra {
   take:
     accessions
+
   main:
     ids = Channel.fromList( accessions )
     sample_reads = downloadFiles( ids )
@@ -97,9 +99,11 @@ workflow sra {
     makeTsv(xs.collect())
 }
 
+
 workflow local {
   take:
     sample_reads
+
   main:
     sample_numReads_alignments = bowtie2( sample_reads )
     xs = postAlign( sample_numReads_alignments )
