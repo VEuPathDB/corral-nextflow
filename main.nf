@@ -19,7 +19,7 @@ def fetchRunAccessions( tsv ) {
 // Param Checking
 //--------------------------------------------------------------------------
 
-if(params.downloadMethod == 'sra') {
+if(params.downloadMethod.toLowerCase() == 'sra') {
   if (params.inputPath) {
     accessions = fetchRunAccessions( params.inputPath )
   }
@@ -27,13 +27,8 @@ if(params.downloadMethod == 'sra') {
     throw new Exception("Missing params.fastaSubsetSize")
   }
 }
-else if (params.downloadMethod == 'local') {
-  if (params.localFileLocation) {
-  sample_reads = Channel.fromFilePairs( params.localFileLocation + "/*_{1,2}.fastq" )
-  }
-  else {
-    throw new Exception("Missing params.localFileLocation")
-  }
+else if (params.downloadMethod.toLowerCase() == 'local') {
+  sample_reads = Channel.fromFilePairs( params.inputPath + "/*_{1,2}.fastq" )
 }
 else {
   throw new Exception("Invalid value for params.downloadMethod")
@@ -51,10 +46,10 @@ include { local } from './modules/corral.nf'
 //--------------------------------------------------------------------------
 
 workflow {
-  if (params.downloadMethod == 'sra') {
+  if (params.downloadMethod.toLowerCase() == 'sra') {
     sra(accessions)
   }
-  else if (params.downloadMethod == 'local') {
+  else if (params.downloadMethod.toLowerCase() == 'local') {
     local(sample_reads)
   }
 }

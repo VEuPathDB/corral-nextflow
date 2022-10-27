@@ -24,9 +24,9 @@ process bowtie2 {
     tuple val(sample), path("numReads.txt"), path("alignments*.sam")
 
   script:
-    if(params.libraryLayout == 'single')
+    if(params.libraryLayout.toLowerCase() == 'single')
       template 'bowtieSingle.bash'
-    else if(params.libraryLayout == 'paired')
+    else if(params.libraryLayout.toLowerCase() == 'paired')
       template 'bowtiePaired.bash'
 }
 
