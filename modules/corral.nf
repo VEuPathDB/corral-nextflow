@@ -3,6 +3,7 @@ nextflow.enable.dsl=2
 
 
 process downloadFiles {
+  container = 'veupathdb/bowtiemapping'
   input:
     val id
 
