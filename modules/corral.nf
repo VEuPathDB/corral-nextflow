@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 
 
 process downloadFiles {
-  container = 'veupathdb/bowtiemapping:v1.0.0'
+  container = 'veupathdb/bowtiemapping:1.0.0'
   input:
     val id
 
@@ -18,7 +18,7 @@ process downloadFiles {
 process bowtie2 {
   label 'align'
 
-  container = "veupathdb/corral:v1.0.0"
+  container = "veupathdb/corral:1.0.0"
 
 
   input:
@@ -36,7 +36,7 @@ process bowtie2 {
 
 
 process alignmentStats {
-  container = "veupathdb/corral:v1.0.0"
+  container = "veupathdb/corral:1.0.0"
 
   publishDir "${params.resultDir}/alignmentStats"
 
@@ -54,7 +54,7 @@ process alignmentStats {
 
 
 process summarizeAlignments {
-  container = "veupathdb/corral:v1.0.0"
+  container = "veupathdb/corral:1.0.0"
 
   publishDir "${params.resultDir}/summarizedAlignments"
 
@@ -72,7 +72,7 @@ process summarizeAlignments {
 
 
 process makeTsv {
-  container = "veupathdb/corral:v1.0.0"
+  container = "veupathdb/corral:1.0.0"
 
   publishDir params.resultDir, mode: 'move', overwrite: true  
 
